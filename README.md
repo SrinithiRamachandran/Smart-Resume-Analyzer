@@ -1,54 +1,120 @@
-# Smart Resume Analyser App
-
-[![forthebadge made-with-python](http://ForTheBadge.com/images/badges/made-with-python.svg)](https://www.python.org/)                 
-[![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)   
-
-## [Watch Tutorial for this project](https://youtu.be/hqu5EYMLCUw)
-<img src="https://github.com/Spidy20/Smart_Resume_Analyser_App/blob/master/yt_thumb.jpg">
-
-## [Get the project Report, PPT, and Diagrams](https://kushalbhavsar1820.stores.instamojo.com/product/864991/smart-resume-analyzer-ppt-report-and-diagram-c091f/)
-## Source
-- Extracting user's information from the Resume, I used [PyResparser](https://omkarpathak.in/pyresparser/)
-- Extracting Resume PDF into Text, I used [PDFMiner](https://pypi.org/project/pdfminer/).
-
-## Features
-- User's & Admin Section
-- Resume Score
-- Career Recommendations
-- Resume writing Tips suggestions
-- Courses Recommendations
-- Skills Recommendations
-- Youtube video recommendations
-
-## Usage
-- Clone my repository.
-- Open CMD in working directory.
-- Run following command.
-  ```
-  pip install -r requirements.txt
-  ```
-- `App.py` is the main Python file of Streamlit Web-Application. 
-- `Courses.py` is the Python file that contains courses and youtube video links.
-- Download XAMP or any other control panel, and turn on the Apache & SQL service.
-- To run app, write following command in CMD. or use any IDE.
-  ```
-  streamlit run App.py
-  ```
-- `Uploaded_Resumes` folder is contaning the user's uploaded resumes.
-- `Classifier.py` is the main file which is containing a KNN Algorithm.
-- For more explanation of this project see the tutorial on Machine Learning Hub YouTube channel.
-- Admin side credentials is `machine_learning_hub` and password is `mlhub123`. 
-
-## Screenshots
-
-## User side
-<img src="https://github.com/Spidy20/Smart_Resume_Analyser_App/blob/master/sc1.png">
-
-## Admin Side
-<img src="https://github.com/Spidy20/Smart_Resume_Analyser_App/blob/master/sc2.png">
+\# Smart Resume Analyzer 🚀
 
 
-## Just follow☝️ me and Star⭐ my repository 
 
-# [Buy me a Coffee☕](https://www.buymeacoffee.com/spidy20)
-## [Donate me on PayPal(It will inspire me to do more projects)](https://www.paypal.me/spidy1820)
+An AI-powered Resume Analyzer and Job Market Intelligence System that extracts skills from resumes and provides deep insights into job trends, skill demand, and career recommendations.
+
+
+
+\---
+
+
+
+\## 🔥 Key Features
+
+
+
+\### 📄 Resume Analysis
+
+\- Extracts technical skills from uploaded resumes
+
+\- Matches skills with relevant IT job domains
+
+\- Identifies missing skills for improvement
+
+
+
+\### 💼 Job Market Insights
+
+\- Salary vs Skills analysis
+
+\- Experience vs Skill demand
+
+\- Industry-wise skill trends
+
+\- Location-based skill gap analysis
+
+
+
+\### 📊 Advanced Data Analysis
+
+\- Cross-domain skill comparison
+
+\- Skills co-occurrence analysis
+
+\- Company-wise hiring trends
+
+\- Time-based skill demand trends
+
+
+
+\### 🎯 Personalized Insights
+
+\- Skill gap analysis based on resume
+
+\- Domain recommendation (best-fit career path)
+
+\- Top matching job roles
+
+
+
+\---
+
+
+
+\## 🛠️ Tech Stack
+
+
+
+\- \*\*Frontend\*\*: Streamlit
+
+\- \*\*Backend\*\*: Python
+
+\- \*\*Machine Learning\*\*:
+
+&#x20; - Scikit-learn
+
+&#x20; - XGBoost
+
+&#x20; - TF-IDF Vectorization
+
+\- \*\*Data Processing\*\*:
+
+&#x20; - Pandas
+
+&#x20; - NumPy
+
+
+
+\---
+
+
+
+\## 📊 Dataset Features
+
+
+
+\- Job roles, skills, salary ranges
+
+\- Company and location data
+
+\- Experience levels and job types
+
+\- Large-scale dataset (1M+ records used for analysis)
+
+
+
+\---
+
+
+
+\## 🚀 How to Run
+
+
+
+```bash
+
+pip install -r requirements.txt
+
+streamlit run app.py
+

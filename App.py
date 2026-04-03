@@ -3,7 +3,10 @@ import nltk
 import spacy
 nltk.download('stopwords')
 spacy.load('en_core_web_sm')
-
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 import pandas as pd
 import base64, random
 import time, datetime
@@ -20,12 +23,19 @@ import pymysql
 from Courses import ds_course, web_course, android_course, ios_course, uiux_course, resume_videos, interview_videos
 import pafy
 import plotly.express as px
-import youtube_dl
+import yt_dlp
 
-def fetch_yt_video(link):
-    video = pafy.new(link)
-    return video.title
 
+def fetch_yt_video(url):
+    ydl_opts = {}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            video_title = info_dict.get('title', None)
+            return video_title
+    except Exception as e:
+        st.error(f"Error fetching video details: {e}")
+        return "Unknown Title"
 
 def get_table_download_link(df, filename, text):
     """Generates a link allowing the data in a given panda dataframe to be downloaded
@@ -34,10 +44,8 @@ def get_table_download_link(df, filename, text):
     """
     csv = df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-    # href = f'<a href="data:file/csv;base64,{b64}">Download Report</a>'
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">{text}</a>'
     return href
-
 
 def pdf_reader(file):
     resource_manager = PDFResourceManager()
@@ -49,7 +57,6 @@ def pdf_reader(file):
                                       caching=True,
                                       check_extractable=True):
             page_interpreter.process_page(page)
-            print(page)
         text = fake_file_handle.getvalue()
 
     # close open handles
@@ -57,14 +64,11 @@ def pdf_reader(file):
     fake_file_handle.close()
     return text
 
-
 def show_pdf(file_path):
     with open(file_path, "rb") as f:
         base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-    # pdf_display = f'<embed src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf">'
     pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
     st.markdown(pdf_display, unsafe_allow_html=True)
-
 
 def course_recommender(course_list):
     st.subheader("**Courses & Certificates🎓 Recommendations**")
@@ -80,10 +84,8 @@ def course_recommender(course_list):
             break
     return rec_course
 
-
-connection = pymysql.connect(host='localhost', user='root', password='')
+connection = pymysql.connect(host='localhost', user='root', password='srinithi2005')
 cursor = connection.cursor()
-
 
 def insert_data(name, email, res_score, timestamp, no_of_pages, reco_field, cand_level, skills, recommended_skills,
                 courses):
@@ -96,11 +98,50 @@ def insert_data(name, email, res_score, timestamp, no_of_pages, reco_field, cand
     cursor.execute(insert_sql, rec_values)
     connection.commit()
 
-
 st.set_page_config(
     page_title="Smart Resume Analyzer",
     page_icon='./Logo/SRA_Logo.ico',
 )
+
+def train_job_predictor_model():
+    # Load your dataset (assuming it's in the same directory)
+    df = pd.read_csv("job_recommendation_dataset.csv")  # Replace with your actual dataset path
+
+    # Preprocess the data
+    X = df['Required Skills']  # Features: Required Skills column
+    y = df['Job Title']  # Target: Job Title column
+
+    # Convert text to numeric using TfidfVectorizer
+    vectorizer = TfidfVectorizer(stop_words='english')
+    X_vec = vectorizer.fit_transform(X)
+
+    # Split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.2, random_state=42)
+
+    # Train the Random Forest model
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    print(f"Model accuracy: {accuracy * 100:.2f}%")
+
+    # Return the trained model and the vectorizer
+    return model, vectorizer
+
+
+def predict_job(model, vectorizer, user_skills):
+    # Ensure the skills list is converted into a single string
+    if isinstance(user_skills, list):
+        user_skills_str = ' '.join(user_skills)  # Convert list of skills to a string
+    
+    # Convert the user's skills to the same format as the training data
+    user_skills_vec = vectorizer.transform([user_skills_str])
+    
+    # Predict the best job title
+    predicted_job = model.predict(user_skills_vec)[0]
+    return predicted_job
 
 
 def run():
@@ -108,8 +149,7 @@ def run():
     st.sidebar.markdown("# Choose User")
     activities = ["Normal User", "Admin"]
     choice = st.sidebar.selectbox("Choose among the given options:", activities)
-    # link = '[©Developed by Spidy20](http://github.com/spidy20)'
-    # st.sidebar.markdown(link, unsafe_allow_html=True)
+    
     img = Image.open('./Logo/SRA_Logo.jpg')
     img = img.resize((250, 250))
     st.image(img)
@@ -136,20 +176,16 @@ def run():
                      PRIMARY KEY (ID));
                     """
     cursor.execute(table_sql)
+
     if choice == 'Normal User':
-        # st.markdown('''<h4 style='text-align: left; color: #d73b5c;'>* Upload your resume, and get smart recommendation based on it."</h4>''',
-        #             unsafe_allow_html=True)
         pdf_file = st.file_uploader("Choose your Resume", type=["pdf"])
         if pdf_file is not None:
-            # with st.spinner('Uploading your Resume....'):
-            #     time.sleep(4)
             save_image_path = './Uploaded_Resumes/' + pdf_file.name
             with open(save_image_path, "wb") as f:
                 f.write(pdf_file.getbuffer())
             show_pdf(save_image_path)
             resume_data = ResumeParser(save_image_path).get_extracted_data()
             if resume_data:
-                ## Get the whole resume data
                 resume_text = pdf_reader(save_image_path)
 
                 st.header("**Resume Analysis**")
@@ -177,31 +213,60 @@ def run():
                                 unsafe_allow_html=True)
 
                 st.subheader("**Skills Recommendation💡**")
-                ## Skill shows
                 keywords = st_tags(label='### Skills that you have',
                                    text='See our skills recommendation',
                                    value=resume_data['skills'], key='1')
 
-                ##  recommendation
-                ds_keyword = ['tensorflow', 'keras', 'pytorch', 'machine learning', 'deep Learning', 'flask',
-                              'streamlit']
-                web_keyword = ['react', 'django', 'node jS', 'react js', 'php', 'laravel', 'magento', 'wordpress',
-                               'javascript', 'angular js', 'c#', 'flask']
+                ds_keyword = ['tensorflow', 'keras', 'pytorch', 'machine learning', 'deep Learning', 'flask', 'streamlit']
+                web_keyword = ['react', 'django', 'node jS', 'react js', 'php', 'laravel', 'magento', 'wordpress', 'javascript', 'angular js', 'c#', 'flask']
                 android_keyword = ['android', 'android development', 'flutter', 'kotlin', 'xml', 'kivy']
                 ios_keyword = ['ios', 'ios development', 'swift', 'cocoa', 'cocoa touch', 'xcode']
-                uiux_keyword = ['ux', 'adobe xd', 'figma', 'zeplin', 'balsamiq', 'ui', 'prototyping', 'wireframes',
-                                'storyframes', 'adobe photoshop', 'photoshop', 'editing', 'adobe illustrator',
-                                'illustrator', 'adobe after effects', 'after effects', 'adobe premier pro',
-                                'premier pro', 'adobe indesign', 'indesign', 'wireframe', 'solid', 'grasp',
-                                'user research', 'user experience']
+                uiux_keyword = ['ux', 'adobe xd', 'figma', 'zeplin', 'balsamiq', 'ui', 'prototyping', 'wireframes', 'storyframes', 'adobe photoshop', 'photoshop', 'editing', 'adobe illustrator', 'illustrator', 'adobe after effects', 'after effects', 'adobe premier pro', 'premier pro', 'adobe indesign', 'indesign', 'wireframe', 'solid', 'grasp', 'user research', 'user experience']
+                
+                
+                if 'model' not in st.session_state:
+                 st.session_state.model, st.session_state.vectorizer = train_job_predictor_model()
+
+                 # Ask the user to upload their resume (or get the skills from the resume, already handled in your code)
+                 st.subheader("Upload your resume and get job predictions based on your skills")
+                 pdf_file = st.file_uploader("Choose your Resume", type=["pdf"], key="resume_uploader")
+
+                if pdf_file is not None:
+                   try:
+                      resume_data = ResumeParser(pdf_file).get_extracted_data()
+                      if resume_data:
+                         if isinstance(resume_data, dict):
+                          user_skills = resume_data.get('skills', [])
+  
+                          if user_skills:
+                            st.header(f"Skills extracted: {user_skills}")
+                            st.write("We are analyzing your skills to find the best-suited job...")
+                            if 'model' in st.session_state and 'vectorizer' in st.session_state:
+                              # Predict the best job using the trained model
+                              predicted_job = predict_job(st.session_state.model, st.session_state.vectorizer, user_skills)
+                              st.subheader(f"Best-suited Job: {predicted_job}")
+                            else:
+                                 st.error("Model or Vectorizer not found in session state.")
+                          else:
+                             st.error("No skills found in the resume.")
+                         else:
+                           st.error("Extracted data is not in the expected format.")
+                      else:
+                         st.error("No data extracted from the resume.")
+                   except Exception as e:
+                      st.error(f"An error occurred while extracting resume data: {e}")
+                else:
+                     st.error("Please upload a valid resume.")
 
                 recommended_skills = []
                 reco_field = ''
                 rec_course = ''
                 ## Courses recommendation
                 for i in resume_data['skills']:
-                    ## Data science recommendation
-                    if i.lower() in ds_keyword:
+                   ## Data science recommendation
+                   if isinstance(i, str):
+                    skill = i.lower()
+                    if skill in ds_keyword:
                         print(i.lower())
                         reco_field = 'Data Science'
                         st.success("** Our analysis says you are looking for Data Science Jobs.**")
@@ -285,6 +350,10 @@ def run():
                             unsafe_allow_html=True)
                         rec_course = course_recommender(uiux_course)
                         break
+                   else:
+                        if isinstance(i, list):
+                            st.warning(f"Found nested list in skills: {i}. Skipping this entry.")
+                        st.warning(f"Found non-string skill: {i}")
 
                 #
                 ## Insert into table
@@ -388,16 +457,16 @@ def run():
                 connection.commit()
             else:
                 st.error('Something went wrong..')
+
     else:
         ## Admin Side
         st.success('Welcome to Admin Side')
-        # st.sidebar.subheader('**ID / Password Required!**')
-
         ad_user = st.text_input("Username")
         ad_password = st.text_input("Password", type='password')
+
         if st.button('Login'):
-            if ad_user == 'machine_learning_hub' and ad_password == 'mlhub123':
-                st.success("Welcome Kushal")
+            if ad_user == 'user' and ad_password == 'srinithi2005':
+                st.success("Welcome admin")
                 # Display Data
                 cursor.execute('''SELECT*FROM user_data''')
                 data = cursor.fetchall()
@@ -413,9 +482,7 @@ def run():
 
                 ## Pie chart for predicted field recommendations
                 labels = plot_data.Predicted_Field.unique()
-                print(labels)
                 values = plot_data.Predicted_Field.value_counts()
-                print(values)
                 st.subheader("📈 **Pie-Chart for Predicted Field Recommendations**")
                 fig = px.pie(df, values=values, names=labels, title='Predicted Field according to the Skills')
                 st.plotly_chart(fig)
@@ -430,6 +497,5 @@ def run():
 
             else:
                 st.error("Wrong ID & Password Provided")
-
 
 run()
