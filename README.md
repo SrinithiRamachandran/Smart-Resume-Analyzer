@@ -108,6 +108,32 @@ An AI-powered Resume Analyzer and Job Market Intelligence System that extracts s
 
 
 
+\## 🖼️ Screenshots
+
+
+
+\### 📄 Resume Upload
+
+!\[Resume Upload](screenshots/resume\_upload.png)
+
+
+
+\### 🧠 Skill Extraction Output
+
+!\[Skills](screenshots/skills\_output.png)
+
+
+
+\### 💰 Salary vs Skills Analysis
+
+!\[Salary](screenshots/salary\_chart.png)
+
+
+
+\### 📊 Dashboard View
+
+!\[Dashboard](screenshots/dashboard.png)
+
 \## 🚀 How to Run
 
 
